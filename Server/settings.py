@@ -124,6 +124,6 @@ ASGI_APPLICATION = "core.routing.application"
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer' 
+        'BACKEND': 'Redis_server' 
     },
 }
