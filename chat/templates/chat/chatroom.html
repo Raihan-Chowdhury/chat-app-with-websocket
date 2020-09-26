@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sniglet&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs=" crossorigin="anonymous"></script>
+    <title>Chat App</title>
+</head>
+
+
+<style>
+      *{
+            font-family: 'Sniglet', cursive;
+            color: white;
+            
+      }
+      #main{
+        background: #151b1f;
+        height: 100vh;
+      }
+      .chat-box-layer{
+            background: #151b1f;
+            display: flex;
+            justify-content: center;
+      }
+      #chat-box{
+          width: 90%;
+          height: 75vh;
+          background: #2a2e35;
+          overflow: auto;
+          border-radius: 1vw;
+      }
+      .bg{
+        background: #151b1f;
+      }
+</style>
+<div class="bg-gray-100">
+    <div class="max-w-lg mx-auto  bg-gray-900">
+        <div id="main" class="py-4">
+            <button class="text-white text-center text-2xl px-4 py-2 m-4 bg-red-700 rounded-lg">{{room_name}}</button>
+            <div class="chat-box-layer">
+                <div id="chat-box">
+                    {% for x in Msg reversed  %}
+                                {% if request.user.username == x.username.username %}
+                                <div class="flex justify-end pb-4" style="margin-left: 25%;" >
+                                    <div>
+                                        <div>
+                                            <h1 class="text-white-900 bg-blue-500 px-2 py-1 ">{{x.username}}</h1>
+                                        </div>
+                                        <h1 class="text-sm text-right text-gray-900 bg-gray-100 px-2 py-1 rounded-bl-lg">
+                                            {{x.message}}
+                                        </h1>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="flex justify-start pb-4" style="max-width: 75%;">
+                                    <div>
+                                        <div>
+                                            <h1 class="text-sm  text-white bg-red-700 px-1 py-1" style="min-width: max-content;">{{x.username}}</h1>
+                                        </div>
+                                        <h1 class="text-sm  text-gray-900 bg-gray-100 px-2 py-1 rounded-br-lg">
+                                            {{x.message}}
+                                        </h1>
+                                    </div>
+                                </div>
+                                {% endif %}
+                    {% endfor %}
+                    <div id="bottom"></div>
+                </div>  
+            </div>
+            <div class="flex justify-center bg py-4 px-8">
+                <textarea id="input" required class="mr-6 bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-1 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500" type="text" style="resize: none;"></textarea>
+                <button class="text-xl py-2 px-4 rounded-lg bg-blue-700" id="submit" type="submit">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{ request.user.username|json_script:"user_username" }}
+{{ room_name|json_script:"room-name" }}
+<script>
+    document.getElementById( 'bottom' ).scrollIntoView()
+    $('form').submit(function(e){
+        e.preventDefault();
+    });
+    const user_username = JSON.parse(document.getElementById('user_username').textContent);
+    document.querySelector('#submit').onclick = function (e) {
+        const messageInputDom = document.querySelector('#input');
+        const message = messageInputDom.value;
+        
+        chatSocket.send(JSON.stringify({
+            'message': message,
+            'username': user_username,
+        }));
+        messageInputDom.value = '';
+        document.getElementById( 'bottom' ).scrollIntoView()
+    };
+
+
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+
+    const chatSocket = new WebSocket(
+        'ws://' +
+        window.location.host +
+        '/ws/chat/' +
+        roomName +
+        '/'
+    );
+
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        console.log(data)
+        addDiv(data)
+        document.getElementById( 'bottom' ).scrollIntoView()
+    }
+    // functions
+    function addDiv(data){
+        var bot = document.querySelector('#bottom')
+        var cd = document.createElement('div')
+        if (data.username == user_username){
+            cd.setAttribute('class',"flex justify-end pb-4")
+            cd.setAttribute('style',"margin-left: 25%;")
+            cd.innerHTML += `<div>
+                <div>
+                    <h1 class="text-white-900 bg-blue-500 px-2 py-1 ">${data.username}</h1>
+                </div>
+                <h1 class="text-sm text-right text-gray-900 bg-gray-100 px-2 py-1 rounded-bl-lg">
+                    ${data.message}
+                </h1>
+            </div>`
+            //document.querySelector('#chat-box').appendChild(cd);
+            document.querySelector('#chat-box').insertBefore(cd,bot);
+        } else{
+            cd.setAttribute('class',"flex justify-start pb-4")
+            cd.setAttribute('style',"max-width: 75%;")
+            cd.innerHTML = `<div>
+                <div>
+                    <h1 class="text-sm  text-white bg-red-700 px-1 py-1" style="min-width: max-content;">${data.username}</h1>
+                </div>
+                <h1 class="text-sm  text-gray-900 bg-gray-100 px-2 py-1 rounded-br-lg">
+                    ${data.message}
+                </h1>
+            </div>`
+            //document.querySelector('#chat-box').appendChild(cd);
+            document.querySelector('#chat-box').insertBefore(cd,bot);
+        }
+    }
+</script>
+</html>
